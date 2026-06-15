@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <script>
+      if (localStorage.getItem("isLoggedIn") !== "true") {
+        alert("Hold up! You must sign in to view the Course Registration page.");
+        window.location.href = "signin.html"; 
+      }
+    </script>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+
+    <title>Course Registration - Student Hub</title>
+  </head>
+  <body class="bg-light">
+
+    <nav class="navbar navbar-light bg-white shadow-sm"> 
+      <div class="container-fluid">
+        
+        <a class="navbar-brand d-inline-flex align-items-center" href="index.html">
+          <img src="Image/SG.svg" alt="Logo" width="35" height="38" class="me-2">
+          <span class="fw-bold">Student Hub</span>
+        </a>
+        
+        <div class="d-flex align-items-center ms-auto">
+          <button class="btn btn-danger px-3 me-2 fw-bold" onclick="logout()" style="background-color: #dc2626; border-color: #dc2626;">
+            Sign Out
+          </button>
+          
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+        </div>
+        
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav ms-auto pt-2 pb-2"> 
+            <li class="nav-item"><a class="nav-link" href="dashboard.html">Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link active" aria-current="page" href="courses.html">Courses</a></li>
+            <li class="nav-item"><a class="nav-link" href="assignment.html">Task Matrix</a></li>
+            <li class="nav-item"><a class="nav-link" href="submissions.html">Submissions</a></li>
+            <li class="nav-item"><a class="nav-link" href="timetable.html">Timetable</a></li>
+            <li class="nav-item"><a class="nav-link" href="profile.html">Profile</a></li>
+          </ul>
+        </div>
+
+      </div>
+    </nav>
+
+    <div class="container mt-5">
+      <h2 class="fw-bold mb-4">Course Registration - Fall 2026</h2>
+      
+      <div class="row">
+        <div class="col-lg-8">
+          <div class="row">
+            
+            <div class="col-md-6 mb-4">
+              <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                  <span class="badge bg-primary mb-2" style="background-color: #8b5cf6 !important;">CS101</span>
+                  <h5 class="card-title fw-bold">Intro to Computer Science</h5>
+                  <p class="card-text text-muted small">Learn the fundamentals of programming using Python and basic algorithms.</p>
+                  <p class="mb-3 fw-bold">3 Credits</p>
+                  <button id="btn-CS101" class="btn btn-outline-secondary w-100" onclick="addCourse('CS101', 'Intro to Computer Science', 3, this)">Add to Schedule</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6 mb-4">
+              <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                  <span class="badge bg-primary mb-2" style="background-color: #8b5cf6 !important;">IMS564</span>
+                  <h5 class="card-title fw-bold">Intro to User Interface/User Experience</h5>
+                  <p class="card-text text-muted small">Learn the fundamentals of designing and developing user-friendly interfaces.</p>
+                  <p class="mb-3 fw-bold">3 Credits</p>
+                  <button id="btn-IMS564" class="btn btn-outline-secondary w-100" onclick="addCourse('IMS564', 'Intro to User Interface/User Experience', 3, this)">Add to Schedule</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6 mb-4">
+              <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                  <span class="badge bg-primary mb-2" style="background-color: #8b5cf6 !important;">MAT201</span>
+                  <h5 class="card-title fw-bold">Calculus I</h5>
+                  <p class="card-text text-muted small">Limits, derivatives, and integrals. Required for all engineering majors.</p>
+                  <p class="mb-3 fw-bold">4 Credits</p>
+                  <button id="btn-MAT201" class="btn btn-outline-secondary w-100" onclick="addCourse('MAT201', 'Calculus I', 4, this)">Add to Schedule</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6 mb-4">
+              <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                  <span class="badge bg-primary mb-2" style="background-color: #8b5cf6 !important;">ENG105</span>
+                  <h5 class="card-title fw-bold">Academic Writing</h5>
+                  <p class="card-text text-muted small">Develop essential college-level research and essay writing skills.</p>
+                  <p class="mb-3 fw-bold">3 Credits</p>
+                  <button id="btn-ENG105" class="btn btn-outline-secondary w-100" onclick="addCourse('ENG105', 'Academic Writing', 3, this)">Add to Schedule</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6 mb-4">
+              <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                  <span class="badge bg-primary mb-2" style="background-color: #8b5cf6 !important;">CTU554</span>
+                  <h5 class="card-title fw-bold">Civilization and ethics</h5>
+                  <p class="card-text text-muted small">a UiTM course focusing on the appreciation of ethics and civilization within a Malaysian context. </p>
+                  <p class="mb-3 fw-bold">3 Credits</p>
+                  <button id="btn-CTU554" class="btn btn-outline-secondary w-100" onclick="addCourse('CTU554', 'Civilization and ethics', 3, this)">Add to Schedule</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="col-lg-4">
+          <div class="card border-0 shadow-sm sticky-top" style="top: 20px;">
+            <div class="card-header bg-white fw-bold py-3">
+              Your Schedule
+            </div>
+            <div class="card-body">
+              <ul id="selectedCoursesList" class="list-group list-group-flush mb-3">
+                <li class="list-group-item text-muted text-center" id="emptyState">No courses selected yet.</li>
+              </ul>
+              <hr>
+              <div class="d-flex justify-content-between fw-bold mb-4">
+                <span>Total Credits:</span>
+                <span id="totalCredits">0</span>
+              </div>
+              <button class="btn btn-primary w-100 fw-bold" style="background-color: #8b5cf6; border-color: #8b5cf6;" onclick="submitRegistration()">Confirm Registration</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div> 
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+    
+    <script src="js/script.js"></script>
+  </body>
+</html>

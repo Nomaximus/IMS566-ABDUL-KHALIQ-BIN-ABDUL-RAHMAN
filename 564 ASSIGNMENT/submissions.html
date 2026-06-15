@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <title>Submissions Desk - Student Hub</title>
+    <script>
+      if (localStorage.getItem("isLoggedIn") !== "true") {
+        window.location.href = "signin.html";
+      }
+    </script>
+  </head>
+  <body class="bg-light">
+
+    <nav class="navbar navbar-light bg-white shadow-sm"> 
+      <div class="container-fluid">
+        <a class="navbar-brand d-inline-flex align-items-center" href="index.html">
+          <img src="Image/SG.svg" alt="Logo" width="35" height="38" class="me-2">
+          <span class="fw-bold">Student Hub</span>
+        </a>
+        <div class="d-flex align-items-center ms-auto">
+          <button class="btn btn-danger px-3 me-2 fw-bold" onclick="logout()" style="background-color: #dc2626; border-color: #dc2626;">Sign Out</button>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+        </div>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav ms-auto pt-2 pb-2"> 
+            <li class="nav-item"><a class="nav-link" href="dashboard.html">Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" href="courses.html">Courses</a></li>
+            <li class="nav-item"><a class="nav-link" href="assignment.html">Task Matrix</a></li>
+            <li class="nav-item"><a class="nav-link active" aria-current="page" href="submissions.html">Submissions</a></li>
+            <li class="nav-item"><a class="nav-link" href="timetable.html">Timetable</a></li>
+            <li class="nav-item"><a class="nav-link" href="profile.html">Profile</a></li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container mt-5">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h2 class="fw-bold m-0">Submissions Desk</h2>
+          <p class="text-muted small mb-0">Turn in assignments marked as done and track historical grades</p>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-lg-5 mb-4">
+          <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white fw-bold py-3 border-bottom-0">
+              📥 Ready for Submission
+            </div>
+            <div class="card-body p-0">
+              <ul class="list-group list-group-flush" id="pendingSubmissionGateway">
+                </ul>
+            </div>
+          </div>
+
+          <div class="card border-0 shadow-sm d-none" id="draftUploadSection">
+            <div class="card-header bg-white fw-bold py-3 border-bottom-0 d-flex justify-content-between align-items-center">
+              <span>📂 Draft Attachments Portal</span>
+              <span class="badge bg-secondary">Simulated Draft Only</span>
+            </div>
+            <div class="card-body pt-0">
+              <div class="upload-dropzone text-center p-4 mb-3" onclick="document.getElementById('folderDraftInput').click()">
+                <img src="Image/SG.svg" alt="Upload Icon" width="30" class="mb-2" style="opacity: 0.5; filter: grayscale(1);">
+                <p class="small fw-bold text-secondary mb-1">Click to browse files or folder</p>
+                <p class="text-muted mb-0" style="font-size: 0.75rem;">Supports directory structure web draft rendering</p>
+                <input type="file" id="folderDraftInput" class="d-none" multiple webkitdirectory directory>
+              </div>
+
+              <div id="draftFilesContainer" class="d-none">
+                <label class="form-label small fw-bold text-muted uppercase">Staged Directory Map Summary:</label>
+                <div class="p-3 border rounded bg-white text-dark small style-scroll">
+                  <ul class="list-unstyled mb-0" id="draftFilesManifestList">
+                    </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-7 mb-4">
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3 border-bottom-0">
+              <span class="fw-bold">📜 Finalized Vault Archive</span>
+              <span class="badge bg-success" id="archiveCounter">0 Filed</span>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                  <thead class="table-light text-muted small">
+                    <tr>
+                      <th class="ps-4">Item Details</th>
+                      <th>Status State</th>
+                      <th class="pe-4 text-end">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="finalizedSubmissionsTableBody">
+                    </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/script.js"></script>
+  </body>
+</html>
