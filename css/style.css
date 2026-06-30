@@ -1,0 +1,168 @@
+/* =========================================
+   STUDENT HUB - GLOBAL THEME & TYPOGRAPHY
+   ========================================= */
+:root {
+  --theme-purple: #8b5cf6;
+  --theme-purple-light: #f5f3ff;
+  --text-dark: #0f172a;       /* Deep high-contrast slate for maximum readability */
+  --text-secondary: #475569;  /* Crisp, highly visible slate gray for descriptions */
+}
+
+/* Global contrast enhancements */
+body {
+  color: var(--text-dark);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Visibility overrides for secondary texts to ensure strong contrast ratios */
+.text-secondary, .text-muted {
+  color: var(--text-secondary) !important;
+}
+
+.text-dark {
+  color: var(--text-dark) !important;
+}
+
+.theme-accent-text { 
+  color: var(--theme-purple) !important; 
+}
+
+.theme-accent-bg { 
+  background-color: var(--theme-purple) !important; 
+}
+
+/* Polished high-visibility badge adjustments */
+.badge {
+  letter-spacing: 0.03em;
+  font-weight: 700 !important;
+}
+
+/* =========================================
+   DYNAMIC HOVERS & Premium Elevation
+   ========================================= */
+.transition-all {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Lifts items upward gracefully instead of moving left, 
+   creating a cleaner dashboard grid experience 
+*/
+.card.transition-all:hover, 
+div.card:hover {
+  border-color: var(--theme-purple) !important;
+  transform: translateY(-5px);
+  box-shadow: 0 12px 20px -5px rgba(139, 92, 246, 0.15) !important;
+}
+
+/* Custom Grayscale Image (Used for empty state/upload icons) */
+.img-grayscale {
+  filter: grayscale(100%);
+  opacity: 0.4;
+  transition: all 0.2s ease-in-out;
+}
+
+/* =========================================
+   SUBMISSIONS DESK & COMPONENT WORKSPACE
+   ========================================= */
+.upload-dropzone {
+  border: 2px dashed #cbd5e1;
+  background-color: #f8fafc;
+  border-radius: 12px;
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+}
+
+/* Hover refinements bring back full logo visibility */
+.upload-dropzone:hover {
+  border-color: var(--theme-purple);
+  background-color: var(--theme-purple-light);
+}
+
+.upload-dropzone:hover .img-grayscale {
+  filter: none;
+  opacity: 0.95;
+}
+
+/* UI Scrollbars refined for deep directory structures */
+.style-scroll {
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.style-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.style-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 10px;
+}
+.style-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+.style-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--theme-purple);
+}
+
+/* Clean UI layout for drop-down item consistency */
+.dropdown-menu {
+  border-radius: 10px;
+  padding: 0.5rem;
+}
+
+.dropdown-item {
+  border-radius: 6px;
+  color: var(--text-dark);
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+.dropdown-item:hover {
+  background-color: var(--theme-purple-light);
+  color: var(--theme-purple);
+}
+
+/* =========================================
+   ATTENDANCE MODULE STRUCTURAL SPECIFICS
+   ========================================= */
+.attendance-banner {
+  height: 35vh; 
+  overflow: hidden;
+}
+
+.header-bg-img {
+  object-fit: cover;
+}
+
+.banner-overlay {
+  background-color: rgba(36, 27, 94, 0.75);
+}
+
+.banner-text-wrapper {
+  top: 25%; 
+  left: 5%;
+}
+
+.outline-title {
+  color: transparent; 
+  -webkit-text-stroke: 2px white; 
+  font-size: calc(1.5rem + 2vw);
+}
+
+.ticker-container {
+  background: #f8fafc;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+.live-pulse {
+  animation: pulse 2s infinite ease-in-out;
+}
