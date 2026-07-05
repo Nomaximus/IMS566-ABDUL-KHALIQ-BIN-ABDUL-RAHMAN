@@ -16,132 +16,610 @@ if (!globalAssignments) {
 
 let currentActiveTaskIdForUpload = null;
 
-// Available catalog of courses for enrollment mapping
-const courseCatalog = [
-  { code: "CS101", name: "Introduction to Computer Science", credits: 4, schedule: "Mon/Wed 09:00 AM - 10:30 AM", location: "Tech Lab 3", lecturer: "Dr. Alan Turing" },
-  { code: "ENG105", name: "Composition & Critical Writing", credits: 3, schedule: "Tue/Thu 11:00 AM - 12:30 PM", location: "Humanities 102", lecturer: "Prof. Emily Dickinson" },
-  { code: "MAT201", name: "Linear Algebra & Applications", credits: 4, schedule: "Mon/Wed 01:00 PM - 02:30 PM", location: "Math Pavilion 204", lecturer: "Dr. Carl Gauss" },
-  { code: "PHY101", name: "General Physics I", credits: 4, schedule: "Tue/Thu 09:00 AM - 10:30 AM", location: "Science Hall B", lecturer: "Dr. Marie Curie" },
-  { code: "DES220", name: "User Interface & Experience Design", credits: 3, schedule: "Friday 10:00 AM - 01:00 PM", location: "Design Studio A", lecturer: "Prof. Dieter Rams" }
-];
-
 // ==========================================
 // CENTRALIZED RUNTIME CONTROLLER ON DOM LOAD
 // ==========================================
 document.addEventListener("DOMContentLoaded", function() {
   
   // 1. NAVBAR COMPONENT SYNC
-  syncNavbarAuth();
-  
-  // 2. SIGN IN PAGE LOGIN SIMULATOR
-  const loginForm = document.getElementById('loginForm');
-  if (loginForm) {
-    loginForm.addEventListener('submit', function(e) {
-      e.preventDefault();
-      localStorage.setItem("isLoggedIn", "true");
-      window.location.href = "dashboard.html";
+  const signInBtn = document.getElementById("signInBtn");
+  const dashboardBtn = document.getElementById("dashboardBtn");
+  const signOutBtn = document.getElementById("signOutBtn");
+  const navHomeBtn = document.getElementById("navHomeBtn");
+
+  if (localStorage.getItem("isLoggedIn") === "true") {
+    if (signInBtn) signInBtn.classList.add("d-none");
+    if (navHomeBtn) navHomeBtn.classList.add("d-none");
+    if (dashboardBtn) dashboardBtn.classList.remove("d-none");
+    if (signOutBtn) signOutBtn.classList.remove("d-none");
+  } else {
+    if (navHomeBtn) navHomeBtn.classList.remove("d-none");
+  }
+
+  // 2. COURSE INTERACTION LISTENER
+  if (document.getElementById('selectedCoursesList')) {
+    updateScheduleUI();
+    selectedCourses.forEach(course => {
+      const btn = document.getElementById(`btn-${course.id}`);
+      if (btn) {
+        btn.disabled = true;
+        btn.classList.remove('btn-outline-secondary');
+        btn.classList.add('btn-success', 'text-white');
+        btn.innerText = 'Added to Schedule';
+      }
     });
   }
 
-  // 3. DASHBOARD PAGE LOGIC
-  if (document.getElementById('taskDonutChart')) {
-    renderDashboardChart();
+  // 3. DASHBOARD LOGIC AGGREGATOR Injections
+  const dashboardCount = document.getElementById('registeredCourseCount');
+  if (dashboardCount) {
+    dashboardCount.innerText = selectedCourses.length;
+    renderAttendance(); 
     renderDashboardDeadlines();
+    renderDashboardChart();
   }
 
-  // 4. COURSE REGISTRATION SUB-SYSTEM
-  if (document.getElementById('selectedCoursesList')) {
-    renderCourseCatalog();
-    updateSelectedCoursesUI();
-  }
-
-  // 5. TIMETABLE RENDER INTERFACE
+  // 4. TIMETABLE PIPELINE RUNNER
   if (document.getElementById('timetableBody')) {
     renderTimetable();
   }
 
-  // 6. TASK PIPELINE & MATRIX SYSTEM
+  // 5. ASSIGNMENTS SYSTEM HANDLERS Hook (Task Matrix Page)
   if (document.getElementById('assignmentsTableBody')) {
-    renderTaskMatrix();
-    setupAssignmentForm();
+    populateCourseDropdown();
+    renderAssignmentManagerTable();
+    
+    const formElement = document.getElementById('assignmentForm');
+    if (formElement) {
+      formElement.addEventListener('submit', createNewAssignment);
+    }
   }
 
-  // 7. SUBMISSIONS VAULT CONTROLLER
-  if (document.getElementById('archiveCounter') || document.getElementById('submissionTaskSelect')) {
-    renderSubmissionsDesk();
+  // 6. SUBMISSION HUB DESK HOOK (Submissions Page)
+  if (document.getElementById('pendingSubmissionGateway') || document.getElementById('finalizedSubmissionsTableBody')) {
+    renderSubmissionHubEngine();
+    attachSubmissionUploadListeners();
   }
 });
 
 // ==========================================
-// COMPONENT CONTROLLER FUNCTIONS
+// TIMETABLE COMPONENT ENGINES
 // ==========================================
+function renderTimetable() {
+  const timetableBody = document.getElementById('timetableBody');
+  if (!timetableBody) return;
 
-function syncNavbarAuth() {
-  const signInBtn = document.getElementById("signInBtn");
-  const dashboardBtn = document.getElementById("dashboardBtn");
-  const targetNav = document.querySelector(".navbar .container") || document.querySelector(".navbar .container-fluid");
-  
-  const loggedIn = localStorage.getItem("isLoggedIn") === "true";
-  
-  if (loggedIn) {
-    if (signInBtn) signInBtn.classList.add("d-none");
-    if (dashboardBtn) dashboardBtn.classList.remove("d-none");
-    
-    // Dynamically inject functional navigation pathways across sub-pages
-    if (targetNav && !document.getElementById("dynamicNavLinks")) {
-      const linksDiv = document.createElement("div");
-      linksDiv.id = "dynamicNavLinks";
-      linksDiv.className = "collapse navbar-collapse d-inline-flex align-items-center ms-4";
-      linksDiv.innerHTML = `
-        <ul class="navbar-nav me-auto gap-2 small fw-bold">
-          <li class="nav-item"><a class="nav-link text-dark" href="dashboard.html">Dashboard</a></li>
-          <li class="nav-item"><a class="nav-link text-dark" href="courses.html">Registration</a></li>
-          <li class="nav-item"><a class="nav-link text-dark" href="timetable.html">Timetable</a></li>
-          <li class="nav-item"><a class="nav-link text-dark" href="taskmatrix.html">Task Matrix</a></li>
-          <li class="nav-item"><a class="nav-link text-dark" href="submissions.html">Submissions</a></li>
-          <li class="nav-item"><a class="nav-link text-dark" href="profile.html">Profile</a></li>
-        </ul>
-        <button class="btn btn-sm btn-outline-danger ms-auto fw-bold px-3 rounded-3" onclick="handleSignOut()">Sign Out</button>
+  if (selectedCourses.length === 0) {
+    timetableBody.innerHTML = `
+      <tr>
+        <td colspan="6" class="text-center text-muted py-5">
+          <span class="d-block fw-bold mb-1">No classes scheduled.</span>
+          <small>Please register for courses to build your timetable.</small>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  const scheduleDatabase = {
+    "CS101": { day: "Monday", date: "Oct 19, 2026", time: "01:00 PM - 06:30 PM", room: "Tech Lab Building 3, Room 402", lecturer: "Prof. Alan Turing", status: '<span class="badge bg-success rounded-pill px-2">Confirmed</span>' },
+    "MAT201": { day: "Tuesday", date: "Oct 20, 2026", time: "01:00 PM - 03:00 PM", room: "Newton Science Hall, Amphitheater B", lecturer: "Dr. Ada Lovelace", status: '<span class="badge bg-success rounded-pill px-2">Confirmed</span>' },
+    "ENG105": { day: "Wednesday", date: "Oct 21, 2026", time: "10:00 AM - 12:00 PM", room: "Humanities Annex, Room 12", lecturer: "Prof. George Orwell", status: '<span class="badge bg-success rounded-pill px-2">Confirmed</span>' },
+    "HIS102": { day: "Thursday", date: "Oct 22, 2026", time: "02:00 PM - 04:30 PM", room: "Main Arts Building, Hall 4A", lecturer: "Dr. Howard Zinn", status: '<span class="badge bg-warning text-dark rounded-pill px-2">Rescheduled</span>' }
+  };
+
+  timetableBody.innerHTML = ''; 
+
+  selectedCourses.forEach(course => {
+    const details = scheduleDatabase[course.id];
+    if (details) {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td class="ps-4 py-3"><span class="fw-bold text-dark d-block">${details.day}</span><small class="text-muted">${details.date}</small></td>
+        <td><span class="badge bg-light text-dark border p-2 fw-normal">${details.time}</span></td>
+        <td><div class="d-flex align-items-center"><span class="badge bg-primary me-2" style="background-color: #8b5cf6 !important;">${course.id}</span><span class="fw-bold text-dark">${course.name}</span></div></td>
+        <td><span class="text-secondary fw-medium">${details.room}</span></td>
+        <td><span class="text-dark">${details.lecturer}</span></td>
+        <td class="pe-4 text-end">${details.status}</td>
       `;
-      const brand = targetNav.querySelector(".navbar-brand");
-      if (brand) brand.after(linksDiv);
+      timetableBody.appendChild(row);
+    }
+  });
+
+  const fridayRow = document.createElement('tr');
+  fridayRow.className = "table-light";
+  fridayRow.innerHTML = `
+    <td class="ps-4 py-3 text-muted"><span class="fw-bold d-block text-secondary">Friday</span><small>Oct 23, 2026</small></td>
+    <td colspan="5" class="text-center text-muted fst-italic small py-3">— No academic classes scheduled for today (Independent Study Day) —</td>
+  `;
+  timetableBody.appendChild(fridayRow);
+}
+
+// ==========================================
+// PORTAL AUTHENTICATION
+// ==========================================
+function handleLogin(event) {
+  event.preventDefault();
+  const email = document.getElementById("emailInput").value;
+  const password = document.getElementById("passwordInput").value;
+
+  if (email === "istudent@hub.com" && password === "password123") {
+    localStorage.setItem("isLoggedIn", "true");
+    alert("Credentials correct! Redirecting to dashboard...");
+    window.location.href = "dashboard.html";
+  } else {
+    alert("Incorrect credentials!\n\nPlease use:\nEmail: istudent@hub.com\nPassword: password123");
+  }
+}
+
+function logout() {
+  localStorage.removeItem("isLoggedIn");
+  window.location.href = "signin.html";
+}
+
+// ==========================================
+// COURSE SELECTION MOTORS
+// ==========================================
+// ==========================================
+// COURSE SELECTION MOTORS (CREDIT HRLY CAP)
+// ==========================================
+function addCourse(courseId, courseName, credits, buttonElement) {
+  // Calculate total credit hours currently selected
+  let currentTotalCredits = selectedCourses.reduce((sum, course) => sum + course.credits, 0);
+
+  // Check if adding this course exceeds the 23 credit hour limit
+  if (currentTotalCredits + credits > 23) {
+    alert(`Registration blocked! Adding this course (${credits} Credits) would exceed the maximum limit of 23 credit hours allowed for this semester.\n\nCurrent total: ${currentTotalCredits} Credits.`);
+    return;
+  }
+
+  const courseExists = selectedCourses.some(course => course.id === courseId);
+  if (courseExists) return;
+
+  selectedCourses.push({ id: courseId, name: courseName, credits: credits });
+  localStorage.setItem('mySavedCourses', JSON.stringify(selectedCourses));
+
+  buttonElement.disabled = true;
+  buttonElement.classList.remove('btn-outline-secondary');
+  buttonElement.classList.add('btn-success', 'text-white');
+  buttonElement.innerText = 'Added to Schedule';
+
+  updateScheduleUI();
+}
+
+function removeCourse(courseId) {
+  selectedCourses = selectedCourses.filter(course => course.id !== courseId);
+  localStorage.setItem('mySavedCourses', JSON.stringify(selectedCourses));
+
+  const nativeButton = document.getElementById(`btn-${courseId}`);
+  if (nativeButton) {
+    nativeButton.disabled = false;
+    nativeButton.classList.remove('btn-success', 'text-white');
+    nativeButton.classList.add('btn-outline-secondary');
+    nativeButton.innerText = 'Add to Schedule';
+  }
+  updateScheduleUI();
+}
+
+// ==========================================
+// ATTENDANCE CALCULATION ENGINES
+// ==========================================
+function updateScheduleUI() {
+  const listContainer = document.getElementById('selectedCoursesList');
+  const totalCreditsContainer = document.getElementById('totalCredits');
+  if (!listContainer) return;
+
+  listContainer.innerHTML = '';
+
+  if (selectedCourses.length === 0) {
+    listContainer.innerHTML = `<li class="list-group-item text-muted text-center" id="emptyState">No courses selected yet.</li>`;
+    if (totalCreditsContainer) totalCreditsContainer.innerText = '0';
+    return;
+  }
+
+  let creditSum = 0;
+  selectedCourses.forEach(course => {
+    creditSum += course.credits;
+    const listItem = document.createElement('li');
+    listItem.className = 'list-group-item d-flex justify-content-between align-items-center px-0 py-3';
+    listItem.innerHTML = `
+      <div>
+        <h6 class="mb-0 small fw-bold text-dark">${course.name}</h6>
+        <small class="text-muted">${course.id} • ${course.credits} Credits</small>
+      </div>
+      <button class="btn btn-sm btn-link text-danger p-0 text-decoration-none fw-bold" onclick="removeCourse('${course.id}')">Remove</button>
+    `;
+    listContainer.appendChild(listItem);
+  });
+
+  if (totalCreditsContainer) totalCreditsContainer.innerText = creditSum;
+}
+
+function submitRegistration() {
+  if (selectedCourses.length === 0) {
+    alert("Your schedule is empty! Please add at least one course before confirming.");
+    return;
+  }
+  
+  let totalCreditCount = 0;
+  selectedCourses.forEach(course => { totalCreditCount += course.credits; });
+
+  const modalCreditSpan = document.getElementById("modalCreditCount");
+  if (modalCreditSpan) modalCreditSpan.innerText = totalCreditCount;
+  
+  const modalElement = document.getElementById('confirmationModal');
+  if (modalElement) {
+    var myModal = new bootstrap.Modal(modalElement);
+    myModal.show();
+  } else {
+    alert(`Successfully registered for ${totalCreditCount} credits!`);
+  }
+}
+
+function renderAttendance() {
+  const container = document.getElementById('attendanceContainer');
+  if (!container) return;
+
+  if (selectedCourses.length === 0) {
+    container.innerHTML = `
+      <div class="col-12 text-center text-muted py-4">
+        <span class="d-block fw-bold mb-1">No courses registered.</span>
+        <small>Please register for courses to view your attendance status.</small>
+      </div>
+    `;
+    return;
+  }
+
+  const attendanceData = { "CS101": 13, "IMS564": 12, "MAT201": 11, "ENG105": 14, "HIS102": 10, "DEFAULT": 14 };
+  const totalWeeks = 14; 
+  container.innerHTML = '';
+
+  selectedCourses.forEach(course => {
+    const attended = attendanceData[course.id] !== undefined ? attendanceData[course.id] : attendanceData["DEFAULT"];
+    const missed = totalWeeks - attended;
+    const percentage = Math.round((attended / totalWeeks) * 100);
+    
+    let barColor = "bg-success", textColor = "text-success", statusText = "";
+
+    if (missed === 0) {
+      statusText = "Perfect Attendance";
+    } else if (percentage >= 90) {
+      statusText = `Missed ${missed} class`;
+    } else if (percentage >= 80) {
+      barColor = "bg-info"; textColor = "text-info"; statusText = `Missed ${missed} classes`;
+    } else {
+      barColor = "bg-danger"; textColor = "text-danger"; statusText = `⚠️ Missed ${missed} classes`;
+    }
+    
+    const cardHtml = `
+      <div class="col-md-6 mb-3">
+        <div class="p-3 border rounded bg-white h-100">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+              <span class="badge bg-primary me-2" style="background-color: #8b5cf6 !important;">${course.id}</span>
+              <span class="fw-bold text-dark small">${course.name}</span>
+            </div>
+            <span class="fw-bold ${textColor}">${percentage}%</span>
+          </div>
+          <div class="progress" style="height: 8px;">
+            <div class="progress-bar ${barColor}" role="progressbar" style="width: ${percentage}%"></div>
+          </div>
+          <div class="d-flex justify-content-between mt-1">
+            <small class="text-muted" style="font-size: 0.75rem;">Attended: ${attended}/${totalWeeks} classes</small>
+            <small class="${textColor} fw-bold" style="font-size: 0.75rem;">${statusText}</small>
+          </div>
+        </div>
+      </div>
+    `;
+    container.insertAdjacentHTML('beforeend', cardHtml);
+  });
+}
+
+// ==========================================
+// ASSIGNMENT MANAGEMENT MOTORS (TASK MATRIX)
+// ==========================================
+function populateCourseDropdown() {
+  const select = document.getElementById('taskCourse');
+  if (!select) return;
+  select.innerHTML = '';
+  
+  const activeSelectionPool = selectedCourses.length > 0 ? selectedCourses : [
+    { id: "CS101", name: "Intro to Computer Science" },
+    { id: "IMS564", name: "Intro to UI/UX Design" },
+    { id: "MAT201", name: "Calculus I" }
+  ];
+
+  activeSelectionPool.forEach(course => {
+    const opt = document.createElement('option');
+    opt.value = course.id;
+    opt.innerText = `${course.id} - ${course.name}`;
+    select.appendChild(opt);
+  });
+}
+
+function createNewAssignment(event) {
+  event.preventDefault();
+  
+  const title = document.getElementById('taskTitle').value;
+  const course = document.getElementById('taskCourse').value;
+  const deadline = document.getElementById('taskDeadline').value;
+  const status = document.getElementById('taskStatus').value;
+
+  const newTask = { id: "task-" + Date.now(), title, course, deadline, status, submitted: false };
+
+  const dynamicAssignments = JSON.parse(localStorage.getItem('myAssignments')) || [];
+  dynamicAssignments.push(newTask);
+  localStorage.setItem('myAssignments', JSON.stringify(dynamicAssignments));
+
+  document.getElementById('assignmentForm').reset();
+  populateCourseDropdown();
+  renderAssignmentManagerTable();
+  alert("Assignment deployed! Check your synchronized Dashboard.");
+}
+
+function renderAssignmentManagerTable() {
+  const tbody = document.getElementById('assignmentsTableBody');
+  if (!tbody) return;
+  
+  const currentStack = JSON.parse(localStorage.getItem('myAssignments')) || [];
+  tbody.innerHTML = '';
+
+  const visibleTasks = currentStack.filter(task => !task.submitted);
+
+  if(visibleTasks.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-muted">No active assignments in pipeline.</td></tr>`;
+    return;
+  }
+
+  visibleTasks.sort((a,b) => new Date(a.deadline) - new Date(b.deadline));
+  const now = new Date();
+
+  visibleTasks.forEach(task => {
+    const deadlineDate = new Date(task.deadline);
+    const dateFormatted = deadlineDate.toLocaleString('en-US', {
+      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+
+    const timeDifference = deadlineDate - now;
+    const hoursRemaining = timeDifference / (1000 * 60 * 60);
+    const isUrgent = hoursRemaining > 0 && hoursRemaining <= 48 && task.status !== "Done";
+
+    let statusBadge = `<span class="badge bg-warning text-dark">${task.status}</span>`;
+    if(task.status === "Ongoing") statusBadge = `<span class="badge bg-info text-white">${task.status}</span>`;
+    if(task.status === "Done") statusBadge = `<span class="badge bg-success text-white">Done (Ready)</span>`;
+
+    let dynamicActionColumnHTML = '';
+    if (task.status !== "Done") {
+      dynamicActionColumnHTML = `
+        <button class="btn btn-sm btn-success fw-bold me-1 text-white" onclick="quickMarkAsDone('${task.id}')" style="background-color: #198754; border-color: #198754;">✓ Done</button>
+        <select class="form-select form-select-sm d-inline-block w-auto me-1" onchange="updateTaskStateStatus('${task.id}', this.value)">
+          <option value="Pending" ${task.status === 'Pending' ? 'selected' : ''}>Pending</option>
+          <option value="Ongoing" ${task.status === 'Ongoing' ? 'selected' : ''}>Ongoing</option>
+          <option value="Done" ${task.status === 'Done' ? 'selected' : ''}>Done</option>
+        </select>
+      `;
+    } else {
+      dynamicActionColumnHTML = `
+        <a href="submissions.html" class="btn btn-sm btn-primary fw-bold text-white me-1" style="background-color: #8b5cf6; border-color: #8b5cf6;">🚀 Submit Task</a>
+      `;
+    }
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="ps-4">
+        <div class="fw-bold text-dark">${task.title}</div>
+        <small class="badge bg-light text-secondary border">${task.course}</small>
+        ${isUrgent ? '<span class="badge bg-danger rounded-pill">Urgent</span>' : ''}
+      </td>
+      <td class="text-secondary small fw-medium">${dateFormatted}</td>
+      <td>${statusBadge}</td>
+      <td class="pe-4 text-end">
+        ${dynamicActionColumnHTML}
+        <button class="btn btn-sm btn-outline-danger" onclick="eraseTaskProfileEntry('${task.id}')">✕</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function quickMarkAsDone(id) {
+  let list = JSON.parse(localStorage.getItem('myAssignments')) || [];
+  list = list.map(item => item.id === id ? { ...item, status: 'Done' } : item);
+  localStorage.setItem('myAssignments', JSON.stringify(list));
+  renderAssignmentManagerTable();
+}
+
+function updateTaskStateStatus(id, nextState) {
+  let list = JSON.parse(localStorage.getItem('myAssignments')) || [];
+  list = list.map(item => item.id === id ? { ...item, status: nextState } : item);
+  localStorage.setItem('myAssignments', JSON.stringify(list));
+  renderAssignmentManagerTable();
+}
+
+function eraseTaskProfileEntry(id) {
+  if(!confirm("Erase assignment record tracking?")) return;
+  let list = JSON.parse(localStorage.getItem('myAssignments')) || [];
+  list = list.filter(item => item.id !== id);
+  localStorage.setItem('myAssignments', JSON.stringify(list));
+  renderAssignmentManagerTable();
+}
+
+// ==========================================
+// SEPARATE SUBMISSION DESK LOGIC CORE
+// ==========================================
+function renderSubmissionHubEngine() {
+  const pendingGateway = document.getElementById('pendingSubmissionGateway');
+  const finalizedTbody = document.getElementById('finalizedSubmissionsTableBody');
+  const archiveCounter = document.getElementById('archiveCounter');
+  
+  const assignments = JSON.parse(localStorage.getItem('myAssignments')) || [];
+
+  if (pendingGateway) {
+    pendingGateway.innerHTML = '';
+    const readyToSubmit = assignments.filter(t => t.status === "Done" && !t.submitted);
+
+    if (readyToSubmit.length === 0) {
+      pendingGateway.innerHTML = `<li class="list-group-item text-center text-muted py-4">No tasks are waiting to be submitted. Complete a task in the Matrix first!</li>`;
+    } else {
+      readyToSubmit.forEach(task => {
+        const li = document.createElement('li');
+        li.className = "list-group-item d-flex justify-content-between align-items-center p-3";
+        li.innerHTML = `
+          <div>
+            <span class="fw-bold d-block text-dark">${task.title}</span>
+            <small class="badge bg-light text-muted border">${task.course}</small>
+          </div>
+          <div>
+            <button class="btn btn-sm btn-outline-secondary fw-bold me-2" onclick="bindUploadDraftTarget('${task.id}')">📂 Stage Folder</button>
+            <button class="btn btn-sm btn-success fw-bold text-white px-3" onclick="executeFinalTurnIn('${task.id}')">Turn In</button>
+          </div>
+        `;
+        pendingGateway.appendChild(li);
+      });
+    }
+  }
+
+  if (finalizedTbody) {
+    finalizedTbody.innerHTML = '';
+    const turnedInStack = assignments.filter(t => t.submitted);
+
+    if (archiveCounter) archiveCounter.innerText = `${turnedInStack.length} Filed`;
+
+    if (turnedInStack.length === 0) {
+      finalizedTbody.innerHTML = `<tr><td colspan="3" class="text-center text-muted py-4">No submissions archived in this session.</td></tr>`;
+    } else {
+      turnedInStack.forEach(task => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="ps-4">
+            <div class="fw-bold text-muted text-decoration-line-through">${task.title}</div>
+            <small class="text-muted">${task.course}</small>
+          </td>
+          <td><span class="badge bg-success text-white">✓ Done & Submitted</span></td>
+          <td class="pe-4 text-end">
+            <button class="btn btn-sm btn-link text-danger text-decoration-none p-0 small fw-bold" onclick="retractSubmission('${task.id}')">Retract</button>
+          </td>
+        `;
+        finalizedTbody.appendChild(tr);
+      });
     }
   }
 }
 
-window.handleSignOut = function() {
-  localStorage.setItem("isLoggedIn", "false");
-  window.location.href = "signin.html";
-};
+function bindUploadDraftTarget(taskId) {
+  currentActiveTaskIdForUpload = taskId;
+  
+  const draftContainer = document.getElementById('draftUploadSection');
+  if (draftContainer) {
+    draftContainer.classList.remove('d-none');
+    
+    const manifestContainer = document.getElementById('draftFilesContainer');
+    if (manifestContainer) manifestContainer.classList.add('d-none');
+    
+    const manifestList = document.getElementById('draftFilesManifestList');
+    if (manifestList) manifestList.innerHTML = '';
+    
+    const fileInput = document.getElementById('folderDraftInput');
+    if (fileInput) fileInput.value = '';
+  }
+}
 
+function attachSubmissionUploadListeners() {
+  const folderInput = document.getElementById('folderDraftInput');
+  if (!folderInput) return;
+
+  folderInput.addEventListener('change', function(e) {
+    const files = e.target.files;
+    const manifestList = document.getElementById('draftFilesManifestList');
+    const container = document.getElementById('draftFilesContainer');
+
+    if (!files || files.length === 0) return;
+
+    if (manifestList) manifestList.innerHTML = '';
+    if (container) container.classList.remove('d-none');
+
+    Array.from(files).slice(0, 15).forEach(file => {
+      const path = file.webkitRelativePath || file.name;
+      const sizeKb = (file.size / 1024).toFixed(1);
+      
+      const li = document.createElement('li');
+      li.className = "d-flex justify-content-between align-items-center mb-1 text-secondary text-truncate";
+      li.innerHTML = `
+        <span>📄 ${path}</span>
+        <span class="badge bg-light text-dark text-end ms-2 font-monospace" style="font-size: 0.7rem;">${sizeKb} KB</span>
+      `;
+      if (manifestList) manifestList.appendChild(li);
+    });
+
+    if (files.length > 15 && manifestList) {
+      const capLi = document.createElement('li');
+      capLi.className = "text-muted small text-center pt-1 border-top mt-2 fst-italic";
+      capLi.innerText = `...and ${files.length - 15} more draft files detected in folder layout...`;
+      manifestList.appendChild(capLi);
+    }
+
+    alert(`Draft folder structure loaded! ${files.length} mock files tracked. You can now click "Turn In".`);
+  });
+}
+
+function executeFinalTurnIn(id) {
+  let list = JSON.parse(localStorage.getItem('myAssignments')) || [];
+  list = list.map(item => item.id === id ? { ...item, submitted: true } : item);
+  localStorage.setItem('myAssignments', JSON.stringify(list));
+  
+  renderSubmissionHubEngine();
+  
+  const draftUIBox = document.getElementById('draftUploadSection');
+  if (draftUIBox) draftUIBox.classList.add('d-none');
+  
+  alert("Assignment turned in successfully!");
+}
+
+function retractSubmission(id) {
+  if(!confirm("Retract submission back to active status?")) return;
+  let list = JSON.parse(localStorage.getItem('myAssignments')) || [];
+  list = list.map(item => item.id === id ? { ...item, submitted: false, status: 'Ongoing' } : item);
+  localStorage.setItem('myAssignments', JSON.stringify(list));
+  renderSubmissionHubEngine();
+}
+
+// ==========================================
+// DYNAMIC DASHBOARD BINDING PORTALS
+// ==========================================
 function renderDashboardDeadlines() {
   const targetUl = document.getElementById('dashboardDeadlinesList');
   if (!targetUl) return;
 
+  const currentStack = JSON.parse(localStorage.getItem('myAssignments')) || [];
   targetUl.innerHTML = '';
-  const assignments = JSON.parse(localStorage.getItem('myAssignments')) || [];
-  const activeTasks = assignments.filter(t => !t.submitted);
 
-  if (activeTasks.length === 0) {
-    targetUl.innerHTML = `<li class="list-group-item text-muted text-center py-4 border-0">No upcoming deadlines!</li>`;
+  const activeIncompleteTasks = currentStack.filter(item => item.status !== "Done" && !item.submitted);
+
+  if (activeIncompleteTasks.length === 0) {
+    targetUl.innerHTML = `<li class="list-group-item text-muted text-center py-4">🎉 All clear! No upcoming tasks.</li>`;
     return;
   }
 
-  activeTasks.forEach(task => {
+  activeIncompleteTasks.sort((a,b) => new Date(a.deadline) - new Date(b.deadline));
+  const now = new Date();
+
+  activeIncompleteTasks.forEach(task => {
+    const dateObj = new Date(task.deadline);
+    const dateText = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const timeText = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+    const timeDifference = dateObj - now;
+    const hoursRemaining = timeDifference / (1000 * 60 * 60);
+    const isUrgent = hoursRemaining > 0 && hoursRemaining <= 48;
+
     const li = document.createElement('li');
-    li.className = "list-group-item d-flex justify-content-between align-items-center p-4 border-0 border-bottom";
-    
-    let badgeClass = "bg-warning text-dark";
-    if (task.status === "Ongoing") badgeClass = "bg-info text-white";
-
-    const dateStr = new Date(task.deadline).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-
+    li.className = "list-group-item d-flex justify-content-between align-items-center p-3";
     li.innerHTML = `
       <div>
-        <h6 class="fw-bold mb-1 text-dark">${task.title}</h6>
-        <p class="mb-0 text-muted small"><span class="badge bg-light text-secondary border me-1">${task.course}</span> Due: ${dateStr}</p>
+        <h6 class="mb-0 small fw-bold text-dark">${task.title} <span class="text-muted fw-normal">(${task.course})</span></h6>
+        <small class="text-muted">Due: ${dateText}, ${timeText}</small>
       </div>
-      <span class="badge rounded-pill px-3 py-1.5 ${badgeClass} fw-normal">${task.status}</span>
+      ${isUrgent ? '<span class="badge bg-danger rounded-pill">Urgent</span>' : `<span class="badge bg-light text-muted border fw-normal">${task.status}</span>`}
     `;
     targetUl.appendChild(li);
   });
@@ -157,11 +635,11 @@ function renderDashboardChart() {
   let ongoing = assignments.filter(t => t.status === 'Ongoing' && !t.submitted).length;
   let done = assignments.filter(t => t.submitted).length;
 
-  if (assignments.length === 0) { pending = 4; ongoing = 2; done = 6; }
+  if(assignments.length === 0) { pending = 4; ongoing = 2; done = 6; }
 
-  if (document.getElementById('badgePendingCount')) document.getElementById('badgePendingCount').innerText = pending;
-  if (document.getElementById('badgeOngoingCount')) document.getElementById('badgeOngoingCount').innerText = ongoing;
-  if (document.getElementById('badgeDoneCount')) document.getElementById('badgeDoneCount').innerText = done;
+  if(document.getElementById('badgePendingCount')) document.getElementById('badgePendingCount').innerText = pending;
+  if(document.getElementById('badgeOngoingCount')) document.getElementById('badgeOngoingCount').innerText = ongoing;
+  if(document.getElementById('badgeDoneCount')) document.getElementById('badgeDoneCount').innerText = done;
 
   const ctx = chartCanvas.getContext('2d');
   new Chart(ctx, {
@@ -178,277 +656,8 @@ function renderDashboardChart() {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      cutout: '75%'
+      plugins: { legend: { display: false }, tooltip: { enabled: true } },
+      cutout: '70%'
     }
   });
-}
-
-// ==========================================
-// COURSE REGISTRATION & TIMETABLE ENGINES
-// ==========================================
-function renderCourseCatalog() {
-  const container = document.getElementById('catalogCoursesRow') || document.querySelector('.row');
-  if (!container || document.getElementById('taskDonutChart')) return;
-
-  container.innerHTML = '';
-  courseCatalog.forEach(course => {
-    const isStaged = selectedCourses.some(c => c.code === course.code);
-    const col = document.createElement('div');
-    col.className = "col-md-6 col-lg-4 mb-4";
-    col.innerHTML = `
-      <div class="card border-0 shadow-sm h-100 p-2">
-        <div class="card-body d-flex flex-column justify-content-between">
-          <div>
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <span class="badge bg-purple-light theme-accent-text px-2.5 py-1.5">${course.code}</span>
-              <span class="text-secondary small fw-bold">${course.credits} Credits</span>
-            </div>
-            <h5 class="fw-bold text-dark mb-3">${course.name}</h5>
-            <p class="text-muted small mb-1">⏰ ${course.schedule}</p>
-            <p class="text-muted small mb-1">📍 ${course.location}</p>
-            <p class="text-muted small mb-0">👤 ${course.lecturer}</p>
-          </div>
-          <button class="btn ${isStaged ? 'btn-secondary disabled' : 'btn-outline-primary'} w-100 fw-bold rounded-3 mt-4 py-2"
-                  onclick="stageCourse('${course.code}')" ${isStaged ? 'disabled' : ''}>
-            ${isStaged ? '✓ Selected' : 'Select Course'}
-          </button>
-        </div>
-      </div>
-    `;
-    container.appendChild(col);
-  });
-}
-
-window.stageCourse = function(code) {
-  const course = courseCatalog.find(c => c.code === code);
-  if (course && !selectedCourses.some(c => c.code === code)) {
-    selectedCourses.push(course);
-    localStorage.setItem('mySavedCourses', JSON.stringify(selectedCourses));
-    updateSelectedCoursesUI();
-    renderCourseCatalog();
-  }
-};
-
-window.unstageCourse = function(code) {
-  selectedCourses = selectedCourses.filter(c => c.code !== code);
-  localStorage.setItem('mySavedCourses', JSON.stringify(selectedCourses));
-  updateSelectedCoursesUI();
-  renderCourseCatalog();
-};
-
-function updateSelectedCoursesUI() {
-  const list = document.getElementById('selectedCoursesList');
-  const emptyState = document.getElementById('emptyState');
-  const totalCredits = document.getElementById('totalCredits');
-  
-  if (!list) return;
-  list.innerHTML = '';
-  let creditCounter = 0;
-
-  if (selectedCourses.length === 0) {
-    if (emptyState) emptyState.style.display = "block";
-    list.appendChild(emptyState || createEmptyStateNode());
-    if (totalCredits) totalCredits.innerText = '0';
-    return;
-  }
-
-  if (emptyState) emptyState.style.display = "none";
-  selectedCourses.forEach(course => {
-    creditCounter += course.credits;
-    const li = document.createElement('li');
-    li.className = "list-group-item d-flex justify-content-between align-items-center py-3 border-0 border-bottom bg-transparent";
-    li.innerHTML = `
-      <div>
-        <h6 class="fw-bold text-dark mb-0 small">${course.name}</h6>
-        <span class="text-muted small">${course.code} • ${course.credits} Cr</span>
-      </div>
-      <button class="btn btn-sm btn-link text-danger p-0 border-0" onclick="unstageCourse('${course.code}')">Remove</button>
-    `;
-    list.appendChild(li);
-  });
-  if (totalCredits) totalCredits.innerText = creditCounter;
-}
-
-window.submitRegistration = function() {
-  if (selectedCourses.length === 0) {
-    alert("Please select at least one course before checking out.");
-    return;
-  }
-  alert("🎉 Success! Your semester schedule configuration has been locked down.");
-  window.location.href = "timetable.html";
-};
-
-function renderTimetable() {
-  const tbody = document.getElementById('timetableBody');
-  if (!tbody) return;
-
-  tbody.innerHTML = '';
-  if (selectedCourses.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-5 text-muted fw-bold">No active classes enrolled. Head to registration!</td></tr>`;
-    return;
-  }
-
-  selectedCourses.forEach(course => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td class="ps-4 py-3.5 fw-semibold text-dark">${course.schedule.split(' ')[0]}</td>
-      <td class="text-secondary">${course.schedule.substring(course.schedule.indexOf(' ') + 1)}</td>
-      <td>
-        <div class="fw-bold text-dark mb-0">${course.name}</div>
-        <div class="text-muted small">${course.code}</div>
-      </td>
-      <td><span class="badge bg-light text-dark border fw-normal">${course.location}</span></td>
-      <td class="text-dark fw-medium">${course.lecturer}</td>
-      <td class="pe-4 text-end"><span class="badge bg-success text-white rounded-pill px-3 py-1.5">Enrolled</span></td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-// ==========================================
-// PIPELINE ASSIGNMENT CREATION & DISPATCH
-// ==========================================
-function renderTaskMatrix() {
-  const tbody = document.getElementById('assignmentsTableBody');
-  if (!tbody) return;
-
-  tbody.innerHTML = '';
-  const assignments = JSON.parse(localStorage.getItem('myAssignments')) || [];
-
-  assignments.forEach(task => {
-    const tr = document.createElement('tr');
-    let badgeColor = "bg-warning text-dark";
-    if (task.status === "Ongoing") badgeColor = "bg-info text-white";
-    if (task.submitted) badgeColor = "bg-success text-white";
-
-    tr.innerHTML = `
-      <td class="ps-4 py-3">
-        <div class="fw-bold text-dark">${task.title}</div>
-        <div class="text-muted small">${task.course}</div>
-      </td>
-      <td class="text-secondary small fw-medium">${new Date(task.deadline).toLocaleString()}</td>
-      <td><span class="badge ${badgeColor} px-2.5 py-1.5">${task.submitted ? 'Done' : task.status}</span></td>
-      <td class="pe-4 text-end">
-        <button class="btn btn-sm btn-outline-danger px-2 py-1 rounded-3" onclick="deleteAssignment('${task.id}')">Delete</button>
-      </td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-function setupAssignmentForm() {
-  const form = document.querySelector('form');
-  if (!form || form.id === 'loginForm') return;
-
-  form.addEventListener('submit', function(e) {
-    e.preventDefault();
-    const fields = form.querySelectorAll('input, select');
-    
-    const newTask = {
-      id: "task-" + Date.now(),
-      title: fields[0].value,
-      course: fields[1].value,
-      deadline: fields[2].value,
-      status: fields[3].value,
-      submitted: false
-    };
-
-    const list = JSON.parse(localStorage.getItem('myAssignments')) || [];
-    list.push(newTask);
-    localStorage.setItem('myAssignments', JSON.stringify(list));
-    
-    form.reset();
-    renderTaskMatrix();
-    alert("🚀 New project task deployed down the execution pipeline.");
-  });
-}
-
-window.deleteAssignment = function(id) {
-  let list = JSON.parse(localStorage.getItem('myAssignments')) || [];
-  list = list.filter(t => t.id !== id);
-  localStorage.setItem('myAssignments', JSON.stringify(list));
-  renderTaskMatrix();
-};
-
-// ==========================================
-// SUBMISSIONS DESK & ARCHIVE VAULT ACTIONS
-// ==========================================
-function renderSubmissionsDesk() {
-  const select = document.getElementById('submissionTaskSelect');
-  const archiveTable = document.getElementById('archiveTableBody') || document.querySelector('.table-responsive tbody');
-  const counter = document.getElementById('archiveCounter');
-  const dropzone = document.querySelector('.upload-dropzone');
-
-  const assignments = JSON.parse(localStorage.getItem('myAssignments')) || [];
-
-  if (select) {
-    select.innerHTML = '<option value="" selected disabled>Choose active task assignment...</option>';
-    assignments.filter(t => !t.submitted).forEach(task => {
-      const opt = document.createElement('option');
-      opt.value = task.id;
-      opt.textContent = `[${task.course}] - ${task.title}`;
-      select.appendChild(opt);
-    });
-
-    select.addEventListener('change', function() {
-      currentActiveTaskIdForUpload = this.value;
-    });
-  }
-
-  if (archiveTable) {
-    archiveTable.innerHTML = '';
-    const items = assignments.filter(t => t.submitted);
-    if (counter) counter.innerText = `${items.length} Filed`;
-
-    if (items.length === 0) {
-      archiveTable.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-muted small">No submitted tasks vault archived yet.</td></tr>`;
-    } else {
-      items.forEach(task => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="ps-4 py-3">
-            <div class="fw-bold text-dark">${task.title}</div>
-            <div class="text-muted small">${task.course}</div>
-          </td>
-          <td class="text-secondary small">${new Date().toLocaleDateString()}</td>
-          <td><span class="badge bg-success text-white px-2.5 py-1.5">Vaulted Securely</span></td>
-          <td class="pe-4 text-end text-success fw-bold"><i class="bi bi-shield-check"></i> Verified</td>
-        `;
-        archiveTable.appendChild(tr);
-      });
-    }
-  }
-
-  if (dropzone && !dropzone.dataset.clickBound) {
-    dropzone.dataset.clickBound = "true";
-    dropzone.addEventListener('click', function() {
-      if (!currentActiveTaskIdForUpload) {
-        alert("Please pick an active assignment target from the drop-down menu above first!");
-        return;
-      }
-      
-      const fileUploader = document.createElement('input');
-      fileUploader.type = 'file';
-      fileUploader.onchange = function() {
-        processSubmission(currentActiveTaskIdForUpload);
-      };
-      fileUploader.click();
-    });
-  }
-}
-
-function processSubmission(taskId) {
-  let list = JSON.parse(localStorage.getItem('myAssignments')) || [];
-  const idx = list.findIndex(t => t.id === taskId);
-  
-  if (idx !== -1) {
-    list[idx].submitted = true;
-    list[idx].status = "Done";
-    localStorage.setItem('myAssignments', JSON.stringify(list));
-    currentActiveTaskIdForUpload = null;
-    
-    renderSubmissionsDesk();
-    alert("🔒 File successfully encrypted and locked inside the Archive Vault!");
-  }
 }
